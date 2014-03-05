@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - animation - four influences</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+
+			}
+
+			a { color: red }
+
+			#stats { position: absolute; top:0; left: 0 }
+			#stats #fps { background: transparent !important }
+			#stats #fps #fpsText { color: #aaa !important }
+			#stats #fps #fpsGraph { display: none }
+		</style>
+	</head>
+
+	<body>
+		<div id="info">
+      <a href="http://threejs.org" target="_blank">three.js</a>
+		</div>
+
+		<script src="../build/three.js"></script>
+
+		<script src="js/Detector.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+
+		<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container, stats;
+
+			var camera, scene, renderer;
+      var mesh, animation;
+
+			var clock = new THREE.Clock();
+
+      container = document.createElement( 'div' );
+      document.body.appendChild( container );
+
+
+      var loader = new THREE.JSONLoader();
+      loader.load('models/four_influences.js', function (geometry, materials) {
+
+        materials.forEach(function(mat) {
+          mat.skinning = true;
+        });
+        var meshFace = new THREE.MeshFaceMaterial(materials);
+
+        THREE.AnimationHandler.add(geometry.animations[0]);
+        mesh = new THREE.SkinnedMesh(geometry, meshFace);
+        mesh.scale.set(0.005, 0.005, 0.005);
+        animation = new THREE.Animation(mesh, geometry.animations[0].name);
+
+        init();
+        animate();
+      } );
+
+      function init() {
+
+        camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 2000 );
+        camera.position.set(0, 0.4, 0);
+
+        scene = new THREE.Scene();
+        scene.add(mesh);
+
+        animation.play();
+        size = 14;
+
+        geometry = new THREE.Geometry();
+        material = new THREE.LineBasicMaterial({ color: 0x303030 });
+
+        for (var i = -size; i <= size; i++) {
+          geometry.vertices.push(new THREE.Vector3(-size, -0.04, i));
+          geometry.vertices.push(new THREE.Vector3(size, -0.04, i));
+
+          geometry.vertices.push(new THREE.Vector3(i, -0.04, -size));
+          geometry.vertices.push(new THREE.Vector3(i, -0.04, size));
+        }
+
+        line = new THREE.Line(geometry, material, THREE.LinePieces);
+        scene.add(line);
+
+        light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(-1, -1, -1).normalize();
+        scene.add(light);
+
+        light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 1, 1).normalize();
+        scene.add(light);
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				container.appendChild( renderer.domElement );
+
+				// Stats
+
+				stats = new Stats();
+				container.appendChild( stats.domElement );
+
+				// Events
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			//
+
+			function onWindowResize( event ) {
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+        animation.update(clock.getDelta());
+
+				render();
+				stats.update();
+
+			}
+
+      var fp = new THREE.Vector3(0, 0.4, 0);
+
+			function render() {
+
+				var timer = Date.now() * 0.0005;
+
+				camera.position.x = Math.cos( timer ) * 1.5;
+				camera.position.z = Math.sin( timer ) * 1.5;
+
+				camera.lookAt(fp);
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
