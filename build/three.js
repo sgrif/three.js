@@ -18889,6 +18889,10 @@ THREE.ShaderChunk = {
 		"#ifdef USE_MAP",
 
 		"	vec4 texelColor = texture2D( map, vUv );",
+    "texelColor.x *= 0.8;",
+    "texelColor.y *= 0.8;",
+    "texelColor.z *= 0.8;",
+    "texelColor.w *= 0.8;",
 
 		"	#ifdef GAMMA_INPUT",
 
