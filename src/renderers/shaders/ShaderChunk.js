@@ -490,6 +490,8 @@ THREE.ShaderChunk = {
 		"	uniform vec3 spotLightDirection[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightDistance[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightOuterAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightAngleCosDiff[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightExponent[ MAX_SPOT_LIGHTS ];",
 
 		"#endif",
@@ -623,9 +625,14 @@ THREE.ShaderChunk = {
 
 		"		float spotEffect = dot( spotLightDirection[ i ], normalize( spotLightPosition[ i ] - worldPosition.xyz ) );",
 
-		"		if ( spotEffect > spotLightAngleCos[ i ] ) {",
+		"		if ( spotEffect > spotLightOuterAngleCos[ i ] ) {",
+
+		"			float falloff = 0.0;",
+		"			falloff = (spotEffect - spotLightOuterAngleCos[ i ]) / spotLightAngleCosDiff[ i ];",
+		"			falloff = clamp( falloff, 0.0, 1.0 );",
 
 		"			spotEffect = max( pow( spotEffect, spotLightExponent[ i ] ), 0.0 );",
+		"			spotEffect *= falloff;",
 
 		"			float lDistance = 1.0;",
 		"			if ( spotLightDistance[ i ] > 0.0 )",
@@ -766,6 +773,8 @@ THREE.ShaderChunk = {
 		"	uniform vec3 spotLightPosition[ MAX_SPOT_LIGHTS ];",
 		"	uniform vec3 spotLightDirection[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightOuterAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightAngleCosDiff[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightExponent[ MAX_SPOT_LIGHTS ];",
 
 		"	uniform float spotLightDistance[ MAX_SPOT_LIGHTS ];",
@@ -880,9 +889,14 @@ THREE.ShaderChunk = {
 
 		"		float spotEffect = dot( spotLightDirection[ i ], normalize( spotLightPosition[ i ] - vWorldPosition ) );",
 
-		"		if ( spotEffect > spotLightAngleCos[ i ] ) {",
+		"		if ( spotEffect > spotLightOuterAngleCos[ i ] ) {",
+
+		"			float falloff = 0.0;",
+		"			falloff = (spotEffect - spotLightOuterAngleCos[ i ]) / spotLightAngleCosDiff[ i ];",
+		"			falloff = clamp( falloff, 0.0, 1.0 );",
 
 		"			spotEffect = max( pow( spotEffect, spotLightExponent[ i ] ), 0.0 );",
+		"			spotEffect *= falloff;",
 
 					// diffuse
 

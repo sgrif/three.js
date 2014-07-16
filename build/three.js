@@ -12291,6 +12291,7 @@ THREE.SpotLight = function ( color, intensity, distance, angle, exponent ) {
 	this.intensity = ( intensity !== undefined ) ? intensity : 1;
 	this.distance = ( distance !== undefined ) ? distance : 0;
 	this.angle = ( angle !== undefined ) ? angle : Math.PI / 3;
+	this.penumbraAngle = 0;
 	this.exponent = ( exponent !== undefined ) ? exponent : 10;
 
 	this.castShadow = false;
@@ -19094,6 +19095,8 @@ THREE.ShaderChunk = {
 		"	uniform vec3 spotLightDirection[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightDistance[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightOuterAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightAngleCosDiff[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightExponent[ MAX_SPOT_LIGHTS ];",
 
 		"#endif",
@@ -19227,9 +19230,14 @@ THREE.ShaderChunk = {
 
 		"		float spotEffect = dot( spotLightDirection[ i ], normalize( spotLightPosition[ i ] - worldPosition.xyz ) );",
 
-		"		if ( spotEffect > spotLightAngleCos[ i ] ) {",
+		"		if ( spotEffect > spotLightOuterAngleCos[ i ] ) {",
+
+		"			float falloff = 0.0;",
+		"			falloff = (spotEffect - spotLightOuterAngleCos[ i ]) / spotLightAngleCosDiff[ i ];",
+		"			falloff = clamp( falloff, 0.0, 1.0 );",
 
 		"			spotEffect = max( pow( spotEffect, spotLightExponent[ i ] ), 0.0 );",
+		"			spotEffect *= falloff;",
 
 		"			float lDistance = 1.0;",
 		"			if ( spotLightDistance[ i ] > 0.0 )",
@@ -19370,6 +19378,8 @@ THREE.ShaderChunk = {
 		"	uniform vec3 spotLightPosition[ MAX_SPOT_LIGHTS ];",
 		"	uniform vec3 spotLightDirection[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightOuterAngleCos[ MAX_SPOT_LIGHTS ];",
+		"	uniform float spotLightAngleCosDiff[ MAX_SPOT_LIGHTS ];",
 		"	uniform float spotLightExponent[ MAX_SPOT_LIGHTS ];",
 
 		"	uniform float spotLightDistance[ MAX_SPOT_LIGHTS ];",
@@ -19484,9 +19494,14 @@ THREE.ShaderChunk = {
 
 		"		float spotEffect = dot( spotLightDirection[ i ], normalize( spotLightPosition[ i ] - vWorldPosition ) );",
 
-		"		if ( spotEffect > spotLightAngleCos[ i ] ) {",
+		"		if ( spotEffect > spotLightOuterAngleCos[ i ] ) {",
+
+		"			float falloff = 0.0;",
+		"			falloff = (spotEffect - spotLightOuterAngleCos[ i ]) / spotLightAngleCosDiff[ i ];",
+		"			falloff = clamp( falloff, 0.0, 1.0 );",
 
 		"			spotEffect = max( pow( spotEffect, spotLightExponent[ i ] ), 0.0 );",
+		"			spotEffect *= falloff;",
 
 					// diffuse
 
@@ -20478,6 +20493,8 @@ THREE.UniformsLib = {
 		"spotLightDirection" : { type: "fv", value: [] },
 		"spotLightDistance" : { type: "fv1", value: [] },
 		"spotLightAngleCos" : { type: "fv1", value: [] },
+		"spotLightOuterAngleCos" : { type: "fv1", value: [] },
+		"spotLightAngleCosDiff" : { type: "fv1", value: [] },
 		"spotLightExponent" : { type: "fv1", value: [] }
 
 	},
@@ -20510,6 +20527,7 @@ THREE.UniformsLib = {
 	}
 
 };
+
 /**
  * Webgl Shader Library for three.js
  *
@@ -21999,7 +22017,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 		ambient: [ 0, 0, 0 ],
 		directional: { length: 0, colors: new Array(), positions: new Array() },
 		point: { length: 0, colors: new Array(), positions: new Array(), distances: new Array() },
-		spot: { length: 0, colors: new Array(), positions: new Array(), distances: new Array(), directions: new Array(), anglesCos: new Array(), exponents: new Array() },
+		spot: { length: 0, colors: new Array(), positions: new Array(), distances: new Array(), directions: new Array(), anglesCos: new Array(), outerAnglesCos: new Array(), angleCosDiffs: new Array(), exponents: new Array() },
 		hemi: { length: 0, skyColors: new Array(), groundColors: new Array(), positions: new Array() }
 
 	};
@@ -26500,6 +26518,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 		uniforms.spotLightDistance.value = lights.spot.distances;
 		uniforms.spotLightDirection.value = lights.spot.directions;
 		uniforms.spotLightAngleCos.value = lights.spot.anglesCos;
+		uniforms.spotLightOuterAngleCos.value = lights.spot.outerAnglesCos;
+		uniforms.spotLightAngleCosDiff.value = lights.spot.angleCosDiffs;
 		uniforms.spotLightExponent.value = lights.spot.exponents;
 
 		uniforms.hemisphereLightSkyColor.value = lights.hemi.skyColors;
@@ -26832,6 +26852,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 		spotDistances = zlights.spot.distances,
 		spotDirections = zlights.spot.directions,
 		spotAnglesCos = zlights.spot.anglesCos,
+		spotOuterAnglesCos = zlights.spot.outerAnglesCos,
+		spotAngleCosDiffs = zlights.spot.angleCosDiffs,
 		spotExponents = zlights.spot.exponents,
 
 		hemiSkyColors = zlights.hemi.skyColors,
@@ -26979,6 +27001,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 				spotDirections[ spotOffset + 2 ] = _direction.z;
 
 				spotAnglesCos[ spotLength ] = Math.cos( light.angle );
+				spotOuterAnglesCos[ spotLength ] = Math.cos( light.angle + light.penumbraAngle );
+				spotAngleCosDiffs[ spotLength ] = spotAnglesCos[ spotLength ] - spotOuterAnglesCos[ spotLength ]
 				spotExponents[ spotLength ] = light.exponent;
 
 				spotLength += 1;

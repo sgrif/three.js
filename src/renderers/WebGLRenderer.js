@@ -170,7 +170,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 		ambient: [ 0, 0, 0 ],
 		directional: { length: 0, colors: new Array(), positions: new Array() },
 		point: { length: 0, colors: new Array(), positions: new Array(), distances: new Array() },
-		spot: { length: 0, colors: new Array(), positions: new Array(), distances: new Array(), directions: new Array(), anglesCos: new Array(), exponents: new Array() },
+		spot: { length: 0, colors: new Array(), positions: new Array(), distances: new Array(), directions: new Array(), anglesCos: new Array(), outerAnglesCos: new Array(), angleCosDiffs: new Array(), exponents: new Array() },
 		hemi: { length: 0, skyColors: new Array(), groundColors: new Array(), positions: new Array() }
 
 	};
@@ -4671,6 +4671,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 		uniforms.spotLightDistance.value = lights.spot.distances;
 		uniforms.spotLightDirection.value = lights.spot.directions;
 		uniforms.spotLightAngleCos.value = lights.spot.anglesCos;
+		uniforms.spotLightOuterAngleCos.value = lights.spot.outerAnglesCos;
+		uniforms.spotLightAngleCosDiff.value = lights.spot.angleCosDiffs;
 		uniforms.spotLightExponent.value = lights.spot.exponents;
 
 		uniforms.hemisphereLightSkyColor.value = lights.hemi.skyColors;
@@ -5003,6 +5005,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 		spotDistances = zlights.spot.distances,
 		spotDirections = zlights.spot.directions,
 		spotAnglesCos = zlights.spot.anglesCos,
+		spotOuterAnglesCos = zlights.spot.outerAnglesCos,
+		spotAngleCosDiffs = zlights.spot.angleCosDiffs,
 		spotExponents = zlights.spot.exponents,
 
 		hemiSkyColors = zlights.hemi.skyColors,
@@ -5150,6 +5154,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 				spotDirections[ spotOffset + 2 ] = _direction.z;
 
 				spotAnglesCos[ spotLength ] = Math.cos( light.angle );
+				spotOuterAnglesCos[ spotLength ] = Math.cos( light.angle + light.penumbraAngle );
+				spotAngleCosDiffs[ spotLength ] = spotAnglesCos[ spotLength ] - spotOuterAnglesCos[ spotLength ]
 				spotExponents[ spotLength ] = light.exponent;
 
 				spotLength += 1;
